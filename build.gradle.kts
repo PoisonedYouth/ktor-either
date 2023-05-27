@@ -37,5 +37,12 @@ dependencies {
     implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.3")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.3")
+    testImplementation("org.assertj:assertj-core:3.24.2")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
