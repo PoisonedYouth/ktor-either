@@ -1,9 +1,12 @@
 package com.poisonedyouth.adapter
 
+import com.poisonedyouth.failure.Failure
 import com.poisonedyouth.model.Address
 import com.poisonedyouth.model.UUIDIdentity
 import com.poisonedyouth.model.User
 import com.poisonedyouth.port.UserPort
+import com.poisonedyouth.service.AddressDto
+import com.poisonedyouth.service.UserDto
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receive
@@ -16,73 +19,49 @@ class UserController(
     private val logger = LoggerFactory.getLogger(UserController::class.java)
 
     suspend fun addNewUser(call: ApplicationCall) {
-        return try {
-            val user = call.receive<UserDto>().toUser()
-            call.respond(HttpStatusCode.Created, userPort.addNewUser(user).toUserDto())
-        } catch (e: IllegalArgumentException) {
-            logger.error("Invalid input.", e)
-            call.respond(HttpStatusCode.BadRequest, "Invalid input: ${e.message}")
-        } catch (e: Exception) {
-            logger.error("Failed to add new user.", e)
-            call.respond(HttpStatusCode.InternalServerError, "Failed to add new user: ${e.message}")
+        val user = call.receive<UserDto>()
+        userPort.addNewUser(user).fold({ failure -> handleFailure(failure, call) }) {
+            call.respond(HttpStatusCode.Created, it.toUserDto())
         }
     }
 
     suspend fun updateUser(call: ApplicationCall) {
-        return try {
-            val user = call.receive<UserDto>().toUser()
-            call.respond(HttpStatusCode.OK, userPort.updateUser(user).toUserDto())
-        } catch (e: IllegalArgumentException) {
-            logger.error("Invalid input.", e)
-            call.respond(HttpStatusCode.BadRequest, "Invalid input: ${e.message}")
-        } catch (e: Exception) {
-            logger.error("Failed to update user.", e)
-            call.respond(HttpStatusCode.InternalServerError, "Failed to update user: ${e.message}")
+        val user = call.receive<UserDto>()
+        userPort.updateUser(user).fold({ failure -> handleFailure(failure, call) }) {
+            call.respond(HttpStatusCode.OK, it.toUserDto())
         }
     }
 
     suspend fun deleteUser(call: ApplicationCall) {
-        return try {
-            val userId = call.parameters["userId"] ?: throw IllegalArgumentException("Missing 'userId' parameter.")
-            call.respond(HttpStatusCode.Accepted, userPort.deleteUser(UUIDIdentity.fromString(userId)))
-        } catch (e: IllegalArgumentException) {
-            logger.error("Invalid input.", e)
-            call.respond(HttpStatusCode.BadRequest, "Invalid input: ${e.message}")
-        } catch (e: Exception) {
-            logger.error("Failed to delete user.", e)
-            call.respond(HttpStatusCode.BadRequest, "Failed to update user: ${e.message}")
+        val userId = call.parameters["userId"]
+        val identity = UUIDIdentity.fromNullableString(userId)
+        userPort.deleteUser(identity).fold({ failure -> handleFailure(failure, call) }) {
+            call.respond(HttpStatusCode.Accepted, Unit)
         }
     }
 
     suspend fun findUser(call: ApplicationCall) {
-        return try {
-            val userId = call.parameters["userId"] ?: throw IllegalArgumentException("Missing 'userId' parameter.")
-            call.respond(HttpStatusCode.Accepted, userPort.findUser(UUIDIdentity.fromString(userId)).toUserDto())
-        } catch (e: IllegalArgumentException) {
-            logger.error("Invalid input.", e)
-            call.respond(HttpStatusCode.BadRequest, "Invalid input: ${e.message}")
-        } catch (e: Exception) {
-            logger.error("Failed to find user.", e)
-            call.respond(HttpStatusCode.BadRequest, "Failed to find user: ${e.message}")
+        val userId = call.parameters["userId"]
+        val identity = UUIDIdentity.fromNullableString(userId)
+        userPort.findUser(identity).fold({ failure -> handleFailure(failure, call) }) {
+            call.respond(HttpStatusCode.Accepted, it)
+        }
+    }
+
+    private suspend fun handleFailure(failure: Failure, call: ApplicationCall) {
+        when (failure) {
+            is Failure.ValidationFailure -> {
+                logger.error("Invalid input: ${failure.message}.")
+                call.respond(HttpStatusCode.BadRequest, "Invalid input: ${failure.message}")
+            }
+
+            is Failure.GenericFailure -> {
+                logger.error("Failed to complete operation.", failure.e)
+                call.respond(HttpStatusCode.InternalServerError, "Failed to complete operation: ${failure.message}")
+            }
         }
     }
 }
-
-private fun UserDto.toUser() = User(
-    id = UUIDIdentity.fromStringOrNew(this.id),
-    firstName = this.firstName,
-    lastName = this.lastName,
-    birthDate = this.birthDate,
-    address = this.address.toAddress()
-)
-
-private fun AddressDto.toAddress() = Address(
-    id = UUIDIdentity.fromStringOrNew(this.id),
-    streetName = this.streetName,
-    streetNumber = this.streetNumber,
-    zipCode = this.zipCode,
-    city = this.city
-)
 
 private fun User.toUserDto() = UserDto(
     id = this.id.getIdOrNull().toString(),

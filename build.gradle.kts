@@ -36,6 +36,10 @@ dependencies {
     implementation("io.ktor:ktor-serialization-jackson-jvm:$ktorVersion")
     implementation("io.ktor:ktor-server-netty-jvm:$ktorVersion")
     implementation("ch.qos.logback:logback-classic:$logbackVersion")
+
+    implementation(platform("io.arrow-kt:arrow-stack:1.2.0-RC"))
+    implementation("io.arrow-kt:arrow-core")
+
     testImplementation("io.ktor:ktor-server-tests-jvm:$ktorVersion")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.9.3")
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.3")

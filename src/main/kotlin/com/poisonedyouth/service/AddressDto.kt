@@ -1,4 +1,4 @@
-package com.poisonedyouth.adapter
+package com.poisonedyouth.service
 
 data class AddressDto(
     val id: String?,
