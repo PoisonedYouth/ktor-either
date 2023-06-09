@@ -16,16 +16,12 @@ import com.poisonedyouth.port.UserRepository
 class UserUseCase(
     private val userRepository: UserRepository
 ) : UserPort {
-    override fun addNewUser(user: UserDto): Either<Failure, User> {
-        return user.toUser().flatMap {
-            userRepository.save(it)
-        }
+    override fun addNewUser(user: UserDto): Either<Failure, User> = either {
+        userRepository.save(user.toUser().bind()).bind()
     }
 
-    override fun updateUser(user: UserDto): Either<Failure, User> {
-        return user.toUser().flatMap {
-            userRepository.update(it)
-        }
+    override fun updateUser(user: UserDto): Either<Failure, User> = either {
+        userRepository.update(user.toUser().bind()).bind()
     }
 
     override fun deleteUser(userId: Identity): Either<Failure, Unit> {
